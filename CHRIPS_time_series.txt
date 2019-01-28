@@ -1,0 +1,59 @@
+﻿var saint_louis
+
+//var fc = ee.FeatureCollection('ft:1J2EbxO3zzCLggEYc57Q4mzItFFaaPCAHqe1CBA4u') // Containing multiple polygons
+//    .filter(ee.Filter.eq('name', 'bangka')); // Here I select my ROI
+
+Map.addLayer(saint_louis, {}, 'area');
+Map.centerObject(saint_louis, 7);
+
+// var aggregate_array = geometry.aggregate_array('name');
+// print('Name of area: ', aggregate_array, 'Selected data in FeatureCollection:', fc);
+
+var month_mean = ee.List.sequence(0, 40*12).map(function(n) { // .sequence: number of years from starting year to present
+  var start = ee.Date('1981-01-01').advance(n, 'month'); // Starting date
+  var end = start.advance(1, 'month'); // Step by each iteration
+
+  return ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+        .filterDate(start, end)
+        .mean()
+        .set('system:time_start', start.millis());
+});
+print(month_mean); 
+
+var collection = ee.ImageCollection(month_mean);
+
+print(collection);
+
+// Plotting
+
+// var area_name = fc.aggregate_array('name').getInfo();
+ var title = 'CHIRPS [mm/day] for ';
+
+var TimeSeries = ui.Chart.image.seriesByRegion({
+    imageCollection: collection,
+    regions: saint_louis,
+    reducer: ee.Reducer.mean(),
+    scale: 5000,
+    xProperty: 'system:time_start',
+    seriesProperty: 'label'
+  }).setChartType('ScatterChart')
+    .setOptions({
+      title: title,
+      vAxis: {title: '[mm/day]'},
+      lineWidth: 1,
+      pointSize: 1,
+    });
+
+print('TimeSeries of selected area:', TimeSeries);
+
+
+var dataset = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+                  .filter(ee.Filter.date('2018-09-01', '2018-09-03'));
+var precipitation = dataset.select('precipitation');
+var precipitationVis = {
+  min: 1.0,
+  max: 17.0,
+  palette: ['001137', '0aab1e', 'e7eb05', 'ff4a2d', 'e90000'],
+};
+Map.setCenter(17.93, 7.71, 2);
+Map.addLayer(precipitation, precipitationVis, 'Precipitation');
